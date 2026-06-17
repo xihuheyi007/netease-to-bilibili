@@ -2,7 +2,7 @@
 
 将网易云音乐公开歌单同步到哔哩哔哩收藏夹的 Web 工具。
 
-基于 Cloudflare Workers 构建，无需安装，浏览器直接使用。
+基于 Cloudflare Workers 构建，部署后通过浏览器直接使用，无需安装客户端。
 
 ## 功能特性
 
@@ -25,34 +25,88 @@
 
 ### 前置条件
 
-- Node.js 18+
-- Cloudflare 账号（免费版即可）
+- [Node.js](https://nodejs.org/) 18+
+- [Cloudflare](https://dash.cloudflare.com/sign-up) 账号（免费版即可）
 
-### 本地开发
+### 1. 克隆仓库
 
 ```bash
-# 1. 安装依赖
+git clone https://github.com/xihuheyi007/netease-to-bilibili.git
+cd netease-to-bilibili
+```
+
+### 2. 安装依赖
+
+```bash
 npm install
+```
 
-# 2. 创建 KV namespace
-npx wrangler kv_namespace create SESSIONS
-npx wrangler kv_namespace create SESSIONS --preview
+### 3. 登录 Cloudflare
 
-# 3. 将返回的 id / preview_id 填入 wrangler.toml
-#    或直接复制 wrangler.toml.example 并填写
+```bash
+npx wrangler login
+```
 
-# 4. 启动本地开发服务器
+浏览器会弹出 Cloudflare 授权页面，点击允许即可。
+
+### 4. 创建 KV namespace
+
+```bash
+npx wrangler kv:namespace create SESSIONS
+npx wrangler kv:namespace create SESSIONS --preview
+```
+
+两条命令分别返回类似以下内容：
+
+```
+{ binding = "SESSIONS", id = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" }
+{ binding = "SESSIONS", preview_id = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" }
+```
+
+### 5. 配置 wrangler.toml
+
+复制示例配置文件：
+
+```bash
+cp wrangler.toml.example wrangler.toml
+```
+
+编辑 `wrangler.toml`，将上一步获得的 ID 填入：
+
+```toml
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "粘贴第一条命令返回的 id"
+preview_id = "粘贴第二条命令返回的 preview_id"
+```
+
+### 6. 启动本地开发服务器
+
+```bash
 npm run dev
 ```
 
 浏览器打开 `http://localhost:8787` 即可使用。
 
-### 部署到 Cloudflare
+## 部署到 Cloudflare
 
 ```bash
-# 部署
+# 部署前确保已完成步骤 4-5（创建 KV namespace 并配置 wrangler.toml）
 npm run deploy
 ```
+
+部署成功后会获得一个 `https://netease-to-bilibili.<你的子域>.workers.dev` 地址，可直接访问。
+
+## 使用流程
+
+1. 打开页面，粘贴网易云音乐公开歌单链接（如 `https://music.163.com/playlist?id=xxx`）
+2. 点击"解析歌单"，等待曲目列表加载
+3. 点击"扫码登录"，用哔哩哔哩 APP 扫描二维码完成登录
+4. 点击"创建收藏夹"，自动以歌单名创建 B 站收藏夹
+5. 点击"开始同步"，逐首搜索并加入收藏
+   - 高匹配度的曲目自动收藏
+   - 不确定的曲目会弹出候选列表，手动选择
+   - 无法匹配的曲目自动跳过
 
 ## 项目结构
 
@@ -98,6 +152,7 @@ src/
 - B 站搜索结果质量不稳定，部分冷门歌曲可能无法匹配
 - 网易云接口偶尔返回部分曲目，已做自动补全但极端情况仍可能受影响
 - 网易云和 B 站的 API 可能随时变更，导致功能异常
+- 本地开发时的速率限制为单实例级别，生产环境建议使用 Cloudflare WAF Rate Limiting
 
 ## 许可证
 
