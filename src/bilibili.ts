@@ -88,6 +88,11 @@ function biliEncode(str: string): string {
     .replace(/\*/g, '%2A');
 }
 
+// Common User-Agent for Bilibili API requests
+// Update periodically if Bilibili starts rejecting outdated browser fingerprints
+const BILI_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+const BILI_REFERER = 'https://www.bilibili.com/';
+
 let cachedWbiKeys: { img_key: string; sub_key: string; expires: number } | null = null;
 
 export async function getWbiKeys(): Promise<{ img_key: string; sub_key: string }> {
@@ -96,7 +101,7 @@ export async function getWbiKeys(): Promise<{ img_key: string; sub_key: string }
   }
 
   const res = await fetch('https://api.bilibili.com/x/web-interface/nav', {
-    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', Referer: 'https://www.bilibili.com/' },
+    headers: { 'User-Agent': BILI_UA, Referer: 'https://www.bilibili.com/' },
   });
   const data = await res.json() as { data?: { wbi_img?: { img_url: string; sub_url: string } } };
 
@@ -131,9 +136,6 @@ export function wbiSign(params: Record<string, string | number>, img_key: string
 }
 
 // ---- Common Bilibili fetch ----
-
-const BILI_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
-const BILI_REFERER = 'https://www.bilibili.com/';
 
 function biliHeaders(cookie?: string): Record<string, string> {
   const h: Record<string, string> = {
@@ -922,8 +924,11 @@ export function buildCookieStr(cookies: { sessdata: string; bili_jct: string; de
   if (cookies.sessdata) parts.push(`SESSDATA=${cookies.sessdata}`);
   if (cookies.bili_jct) parts.push(`bili_jct=${cookies.bili_jct}`);
   if (cookies.dedeuserid) parts.push(`DedeUserID=${cookies.dedeuserid}`);
-  if (cookies.buvid3) parts.push(`buvid3=${cookies.buvid3}`);
+  if (cookies.buvid3) {
+    parts.push(`buvid3=${cookies.buvid3}`);
+  } else {
+    parts.push('buvid3=auto'); // fallback device id
+  }
   if (cookies.bili_ticket) parts.push(`bili_ticket=${cookies.bili_ticket}`);
-  parts.push('buvid3=auto'); // fallback device id
   return parts.join('; ');
 }

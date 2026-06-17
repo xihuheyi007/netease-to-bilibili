@@ -8,6 +8,8 @@ const MODULUS = '00e0b509f6259df8642dbc35662901477df22677ec152b5ff68ace615bb7b72
 const PUBKEY = '010001';
 const NONCE = '0CoJUm6Qyw8W8jud';  // Fixed first AES key
 const IV = '0102030405060708';     // Fixed IV
+// User-Agent for NetEase API requests
+// Update periodically if NetEase starts rejecting outdated browser fingerprints
 const NETEASE_HEADERS = {
   'Content-Type': 'application/x-www-form-urlencoded',
   Referer: 'https://music.163.com/',

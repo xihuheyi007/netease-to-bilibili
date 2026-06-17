@@ -34,8 +34,14 @@ app.use('*', async (c, next) => {
 const rateLimitMap = new Map<string, { count: number; reset: number }>();
 
 function isLocalRequest(ip: string): boolean {
-  return !ip || ip === 'unknown' || ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1' || ip === 'localhost' ||
-         ip.startsWith('192.168.') || ip.startsWith('10.') || ip.startsWith('172.16.');
+  if (!ip || ip === 'unknown' || ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1' || ip === 'localhost') return true;
+  if (ip.startsWith('192.168.') || ip.startsWith('10.')) return true;
+  // 172.16.0.0/12 covers 172.16.x.x – 172.31.x.x
+  if (ip.startsWith('172.')) {
+    const second = Number.parseInt(ip.split('.')[1], 10);
+    if (Number.isFinite(second) && second >= 16 && second <= 31) return true;
+  }
+  return false;
 }
 
 function rateLimit(ip: string, limit = 10, windowMs = 60_000): boolean {
@@ -150,7 +156,8 @@ app.post('/api/netease/playlist', csrfMiddleware, async (c) => {
       },
     });
   } catch (e: any) {
-    return c.json<ApiResponse>({ success: false, error: `获取歌单出错: ${e.message}` }, 500);
+    console.error('Playlist fetch failed:', e);
+    return c.json<ApiResponse>({ success: false, error: '获取歌单失败，请稍后重试' }, 500);
   }
 });
 
@@ -172,7 +179,8 @@ app.post('/api/bilibili/qr/init', csrfMiddleware, async (c) => {
     c.header('Set-Cookie', sessionCookieValue(sessionId));
     return c.json<ApiResponse>({ success: true });
   } catch (e: any) {
-    return c.json<ApiResponse>({ success: false, error: `生成二维码失败: ${e.message}` }, 500);
+    console.error('QR generation failed:', e);
+    return c.json<ApiResponse>({ success: false, error: '生成二维码失败，请稍后重试' }, 500);
   }
 });
 
@@ -201,7 +209,8 @@ app.get('/api/bilibili/qr/image', async (c) => {
       },
     });
   } catch (e: any) {
-    return c.json<ApiResponse>({ success: false, error: `QR generation failed: ${e.message}` }, 500);
+    console.error('QR image generation failed:', e);
+    return c.json<ApiResponse>({ success: false, error: '二维码生成失败，请刷新重试' }, 500);
   }
 });
 
@@ -235,7 +244,8 @@ app.post('/api/bilibili/qr/poll', csrfMiddleware, async (c) => {
 
     return c.json<ApiResponse>({ success: true, data: { status: result.status, message: result.message } });
   } catch (e: any) {
-    return c.json<ApiResponse>({ success: false, error: `Poll failed: ${e.message}` }, 500);
+    console.error('QR poll failed:', e);
+    return c.json<ApiResponse>({ success: false, error: '登录轮询失败，请稍后重试' }, 500);
   }
 });
 
@@ -276,7 +286,8 @@ app.get('/api/bilibili/search', async (c) => {
     const result = await searchVideo(effectiveName, artists, durationMs, cookieStr);
     return c.json<ApiResponse>({ success: true, data: result });
   } catch (e: any) {
-    return c.json<ApiResponse>({ success: false, error: `搜索失败: ${e.message}` }, 500);
+    console.error('Search failed:', e);
+    return c.json<ApiResponse>({ success: false, error: '搜索失败，请稍后重试' }, 500);
   }
 });
 
@@ -296,7 +307,8 @@ app.post('/api/bilibili/folder', csrfMiddleware, async (c) => {
     c.header('Set-Cookie', sessionCookieValue(sessionId));
     return c.json<ApiResponse>({ success: true, data: { id: folderId } });
   } catch (e: any) {
-    return c.json<ApiResponse>({ success: false, error: `创建收藏夹失败: ${e.message}` }, 500);
+    console.error('Folder creation failed:', e);
+    return c.json<ApiResponse>({ success: false, error: '创建收藏夹失败，请稍后重试' }, 500);
   }
 });
 
@@ -316,7 +328,8 @@ app.post('/api/bilibili/fav', csrfMiddleware, async (c) => {
     c.header('Set-Cookie', sessionCookieValue(sessionId));
     return c.json<ApiResponse>({ success: ok, error: ok ? undefined : '添加失败，可能该视频已存在或超出限制' });
   } catch (e: any) {
-    return c.json<ApiResponse>({ success: false, error: `添加失败: ${e.message}` }, 500);
+    console.error('Favorite add failed:', e);
+    return c.json<ApiResponse>({ success: false, error: '添加收藏失败，请稍后重试' }, 500);
   }
 });
 
