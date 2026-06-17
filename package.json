@@ -1,0 +1,22 @@
+{
+  "name": "netease-to-bilibili",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "cf-typegen": "wrangler types"
+  },
+  "dependencies": {
+    "big-integer": "^1.6.52",
+    "hono": "^4.6.14",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250605.0",
+    "@types/qrcode": "^1.5.6",
+    "typescript": "^5.7.3",
+    "wrangler": "^4.10.0"
+  }
+}
